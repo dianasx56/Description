@@ -127,7 +127,7 @@ class Ticket {
 public class Main {
     public static void main(String[] args) {
 
-        Film film = new Film("Euphoria", true);
+        Film film = new Film("Inglourious Basterds", true);
 
         List<Seat> seats = new ArrayList<>();
         seats.add(new Seat(1, true));
