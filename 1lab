@@ -1,0 +1,142 @@
+import java.util.ArrayList;
+import java.util.List;
+
+class Film {
+    private String title;
+    private boolean is3D;
+
+    public Film(String title, boolean is3D) {
+        this.title = title;
+        this.is3D = is3D;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public boolean is3D() {
+        return is3D;
+    }
+}
+
+class Seat {
+    private int number;
+    private boolean vip;
+    private boolean occupied;
+
+    public Seat(int number, boolean vip) {
+        this.number = number;
+        this.vip = vip;
+        this.occupied = false;
+    }
+
+    public boolean isVip() {
+        return vip;
+    }
+
+    public int getNumber() {
+        return number;
+    }
+
+    public boolean isOccupied() {
+        return occupied;
+    }
+
+    public void occupy() {
+        this.occupied = true;
+    }
+}
+
+class Session {
+    private Film film;
+    private int hour;
+    private List<Seat> seats;
+    private List<Ticket> tickets = new ArrayList<>();
+
+    public Session(Film film, int hour, List<Seat> seats) {
+        this.film = film;
+        this.hour = hour;
+        this.seats = seats;
+    }
+
+    public boolean isSeatAvailable(int seatNumber) {
+        Seat seat = findSeat(seatNumber);
+        return seat != null && !seat.isOccupied();
+    }
+
+    public double calculatePrice(Seat seat, boolean glasses3D) {
+        double price = 350;
+
+        if (seat.isVip()) {
+            price += 80;
+        }
+
+        if (glasses3D && film.is3D()) {
+            price += 50;
+        }
+
+        if (hour >= 18) {
+            price += 20;
+        }
+
+        return price;
+    }
+
+    public Ticket createTicket(int seatNumber, boolean glasses3D) {
+        Seat seat = findSeat(seatNumber);
+
+        if (seat == null || seat.isOccupied()) {
+            throw new IllegalStateException("Місце недоступне");
+        }
+
+        double price = calculatePrice(seat, glasses3D);
+
+        seat.occupy();
+
+        Ticket ticket = new Ticket(this, seat, price);
+        tickets.add(ticket);
+
+        return ticket;
+    }
+
+    private Seat findSeat(int seatNumber) {
+        for (Seat seat : seats) {
+            if (seat.getNumber() == seatNumber) {
+                return seat;
+            }
+        }
+        return null;
+    }
+}
+
+class Ticket {
+    private Session session;
+    private Seat seat;
+    private double price;
+
+    public Ticket(Session session, Seat seat, double price) {
+        this.session = session;
+        this.seat = seat;
+        this.price = price;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+}
+public class Main {
+    public static void main(String[] args) {
+
+        Film film = new Film("Euphoria", true);
+
+        List<Seat> seats = new ArrayList<>();
+        seats.add(new Seat(1, true));
+        seats.add(new Seat(2, false));
+
+        Session session = new Session(film, 20, seats);
+
+        Ticket ticket = session.createTicket(1, true);
+
+        System.out.println("Price: " + ticket.getPrice());
+    }
+}
