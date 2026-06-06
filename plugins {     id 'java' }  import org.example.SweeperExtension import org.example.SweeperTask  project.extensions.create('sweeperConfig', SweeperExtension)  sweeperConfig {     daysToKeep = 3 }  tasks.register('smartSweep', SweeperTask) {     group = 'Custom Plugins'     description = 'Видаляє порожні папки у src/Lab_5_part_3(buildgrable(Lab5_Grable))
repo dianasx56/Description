@@ -1,0 +1,21 @@
+plugins {
+    id 'java'
+}
+
+import org.example.SweeperExtension
+import org.example.SweeperTask
+
+project.extensions.create('sweeperConfig', SweeperExtension)
+
+sweeperConfig {
+    daysToKeep = 3
+}
+
+tasks.register('smartSweep', SweeperTask) {
+    group = 'Custom Plugins'
+    description = 'Видаляє порожні папки у src/ та старі артефакти'
+}
+
+tasks.named('build') {
+    dependsOn 'smartSweep'
+}
