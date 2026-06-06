@@ -1,0 +1,59 @@
+package org.example;
+
+import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+// Назва плагіна, яку ми будемо викликати: "insert"
+@Mojo(name = "insert", defaultPhase = LifecyclePhase.PROCESS_SOURCES)
+public class CopyrightMojo extends AbstractMojo {
+
+    // Вказуємо папку з кодом
+    @Parameter(defaultValue = "${project.build.sourceDirectory}", required = true, readonly = true)
+    private File sourceDirectory;
+
+    // Той самий стандартний багаторядковий коментар
+    private static final String COPYRIGHT_HEADER =
+            "/*\n" +
+                    " * Copyright (c) 2026 ЧДТУ. Усі права захищено.\n" +
+                    " * Авторська розробка: Варіант 8.\n" +
+                    " */\n\n";
+
+    public void execute() throws MojoExecutionException {
+        if (!sourceDirectory.exists()) {
+            getLog().info("Папку з вихідним кодом не знайдено.");
+            return;
+        }
+
+        try (Stream<Path> paths = Files.walk(sourceDirectory.toPath())) {
+            // Шукаємо всі .java файли
+            List<Path> javaFiles = paths.filter(Files::isRegularFile)
+                    .filter(p -> p.toString().endsWith(".java"))
+                    .collect(Collectors.toList());
+
+            for (Path file : javaFiles) {
+                String content = new String(Files.readAllBytes(file));
+
+                // Якщо на початку немає нашого копірайту (або будь-якого іншого багаторядкового коментаря)
+                if (!content.trim().startsWith("/*")) {
+                    Files.write(file, (COPYRIGHT_HEADER + content).getBytes());
+                    getLog().info("Додано копірайт до файлу: " + file.getFileName());
+                } else {
+                    getLog().info("Копірайт вже існує у: " + file.getFileName());
+                }
+            }
+        } catch (IOException e) {
+            throw new MojoExecutionException("Помилка під час обробки файлів", e);
+        }
+    }
+}
