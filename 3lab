@@ -1,0 +1,365 @@
+import java.util.ArrayList;
+import java.util.List;
+
+class Film {
+    private String title;
+    private boolean is3D;
+
+    public Film(String title, boolean is3D) {
+        this.title = title;
+        this.is3D = is3D;
+    }
+
+    public boolean is3D() {
+        return is3D;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+}
+
+class Seat {
+    private int number;
+    private boolean vip;
+    private boolean occupied;
+
+    public Seat(int number, boolean vip) {
+        this.number = number;
+        this.vip = vip;
+        this.occupied = false;
+    }
+
+    public int getNumber() {
+        return number;
+    }
+
+    public boolean isVip() {
+        return vip;
+    }
+
+    public boolean isOccupied() {
+        return occupied;
+    }
+
+    public void occupy() {
+        occupied = true;
+    }
+
+    public void free() {
+        occupied = false;
+    }
+}
+
+class Ticket {
+    private Session session;
+    private Seat seat;
+    private double price;
+
+    public Ticket(Session session, Seat seat, double price) {
+        this.session = session;
+        this.seat = seat;
+        this.price = price;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+}
+
+class Session {
+    private Film film;
+    private int hour;
+    private List<Seat> seats;
+
+    public Session(Film film, int hour, List<Seat> seats) {
+        this.film = film;
+        this.hour = hour;
+        this.seats = seats;
+    }
+
+    public Film getFilm() {
+        return film;
+    }
+
+    public int getHour() {
+        return hour;
+    }
+
+    public Seat findSeat(int seatNumber) {
+
+        for (Seat seat : seats) {
+            if (seat.getNumber() == seatNumber) {
+                return seat;
+            }
+        }
+
+        return null;
+    }
+}
+
+interface PricingStrategy {
+    double calculatePrice(Film film, Seat seat, boolean glasses3D);
+}
+
+class MorningPricing implements PricingStrategy {
+
+    @Override
+    public double calculatePrice(Film film, Seat seat, boolean glasses3D) {
+
+        double price = 250;
+
+        if (seat.isVip()) {
+            price += 80;
+        }
+
+        if (film.is3D() && glasses3D) {
+            price += 50;
+        }
+
+        return price;
+    }
+}
+
+class PremierePricing implements PricingStrategy {
+
+    @Override
+    public double calculatePrice(Film film, Seat seat, boolean glasses3D) {
+
+        double price = 450;
+
+        if (seat.isVip()) {
+            price += 80;
+        }
+
+        if (film.is3D() && glasses3D) {
+            price += 50;
+        }
+
+        return price;
+    }
+}
+
+class NightPricing implements PricingStrategy {
+
+    @Override
+    public double calculatePrice(Film film, Seat seat, boolean glasses3D) {
+
+        double price = 350;
+
+        if (seat.isVip()) {
+            price += 80;
+        }
+
+        if (film.is3D() && glasses3D) {
+            price += 50;
+        }
+
+        return price;
+    }
+}
+
+interface PaymentGateway {
+    void pay(double amount);
+}
+
+class PayPalAdapter implements PaymentGateway {
+
+    @Override
+    public void pay(double amount) {
+        System.out.println("PayPal payment: " + amount);
+    }
+}
+
+class StripeAdapter implements PaymentGateway {
+
+    @Override
+    public void pay(double amount) {
+        System.out.println("Stripe payment: " + amount);
+    }
+}
+
+class PaymentService {
+
+    private PaymentGateway gateway;
+
+    public PaymentService(PaymentGateway gateway) {
+        this.gateway = gateway;
+    }
+
+    public void processPayment(double amount) {
+        gateway.pay(amount);
+    }
+}
+
+class BookingService {
+
+    private PricingStrategy pricingStrategy;
+
+    public BookingService(PricingStrategy pricingStrategy) {
+        this.pricingStrategy = pricingStrategy;
+    }
+
+    public List<Ticket> bookTickets(
+            Session session,
+            List<Integer> seatNumbers,
+            boolean glasses3D) {
+
+        List<Seat> reservedSeats = new ArrayList<>();
+        List<Ticket> tickets = new ArrayList<>();
+
+        try {
+
+            for (int number : seatNumbers) {
+
+                Seat seat = session.findSeat(number);
+
+                if (seat == null || seat.isOccupied()) {
+                    throw new IllegalStateException(
+                            "Seat unavailable: " + number);
+                }
+
+                reservedSeats.add(seat);
+            }
+
+            for (Seat seat : reservedSeats) {
+
+                seat.occupy();
+
+                double price =
+                        pricingStrategy.calculatePrice(
+                                session.getFilm(),
+                                seat,
+                                glasses3D
+                        );
+
+                tickets.add(
+                        new Ticket(
+                                session,
+                                seat,
+                                price
+                        )
+                );
+            }
+
+            return tickets;
+
+        } catch (Exception e) {
+
+            for (Seat seat : reservedSeats) {
+                seat.free();
+            }
+
+            throw e;
+        }
+    }
+}
+
+class TicketController {
+
+    private BookingService bookingService;
+    private PaymentService paymentService;
+
+    public TicketController(
+            BookingService bookingService,
+            PaymentService paymentService) {
+
+        this.bookingService = bookingService;
+        this.paymentService = paymentService;
+    }
+
+    public List<Ticket> buyTickets(
+            Session session,
+            List<Integer> seatNumbers,
+            boolean glasses3D) {
+
+        if (session == null) {
+            throw new IllegalArgumentException("Session is null");
+        }
+
+        if (seatNumbers == null || seatNumbers.isEmpty()) {
+            throw new IllegalArgumentException("Seat list is empty");
+        }
+
+        List<Ticket> tickets =
+                bookingService.bookTickets(
+                        session,
+                        seatNumbers,
+                        glasses3D
+                );
+
+        double total = 0;
+
+        for (Ticket ticket : tickets) {
+            total += ticket.getPrice();
+        }
+
+        paymentService.processPayment(total);
+
+        return tickets;
+    }
+}
+
+public class Main {
+
+    public static void main(String[] args) {
+
+        Film film =
+                new Film(
+                        "Inglourious Basterds",
+                        true
+                );
+
+        List<Seat> seats =
+                new ArrayList<>();
+
+        seats.add(new Seat(1, true));
+        seats.add(new Seat(2, false));
+        seats.add(new Seat(3, false));
+
+        Session session =
+                new Session(
+                        film,
+                        20,
+                        seats
+                );
+
+        PricingStrategy strategy =
+                new PremierePricing();
+
+        PaymentGateway gateway =
+                new PayPalAdapter();
+
+        BookingService bookingService =
+                new BookingService(strategy);
+
+        PaymentService paymentService =
+                new PaymentService(gateway);
+
+        TicketController controller =
+                new TicketController(
+                        bookingService,
+                        paymentService
+                );
+
+        List<Integer> seatNumbers =
+                new ArrayList<>();
+
+        seatNumbers.add(1);
+        seatNumbers.add(2);
+
+        List<Ticket> tickets =
+                controller.buyTickets(
+                        session,
+                        seatNumbers,
+                        true
+                );
+
+        for (Ticket ticket : tickets) {
+            System.out.println(
+            "Price: " +
+                    ticket.getPrice()
+            );
+        }
+    }
+}
