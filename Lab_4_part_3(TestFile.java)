@@ -1,0 +1,11 @@
+/*
+ * Copyright (c) 2026 ЧДТУ. Усі права захищено.
+ * Авторська розробка: Варіант 8.
+ */
+
+package org.example;
+public class TestFile {
+    public void test() {
+        System.out.println("Працює!");
+    }
+}
