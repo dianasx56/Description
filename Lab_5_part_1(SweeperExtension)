@@ -1,0 +1,5 @@
+package org.example
+
+class SweeperExtension {
+    int daysToKeep = 3
+}
